@@ -16,6 +16,19 @@ Replace placeholders before running:
 - `SNAPSHOT_ID_FROM_INGEST` with a real `normalized_snapshot_id`
 - `https://example.local` with a reachable non-production base URL
 
+### Makefile shortcuts
+
+```bash
+make collect BASE_URL=https://example.local SPX_DIRS="/ABS/PATH/spx-dir" SLOW_LOG=/ABS/PATH/slow.log URL_PATHS="/"
+make ingest BUNDLE_DIR=var/mcp/bundles/bundle_YYYYMMDD_HHMMSS_xxx
+make analyze
+make report
+```
+
+Notes:
+- `make ingest` stores `result.normalized_snapshot_id` in `/tmp/mcp.snapshot_id`.
+- `make analyze` and `make report` read `SNAPSHOT_ID` from env var first, then from `/tmp/mcp.snapshot_id`.
+
 ### One-shot helper (single request + stderr log capture)
 
 ```bash
@@ -88,6 +101,7 @@ Current framing is newline-delimited JSON (NDJSON-style):
 - one complete JSON request object per line on `STDIN`
 - one complete JSON response object per line on `STDOUT`
 - no multi-line framing protocol is implemented
+- if a request is split across lines (for example, multiline JSON or a heredoc that emits multiple lines), deserialization fails with `Malformed JSON payload.`
 
 If a client sends malformed JSON, the server replies with an error envelope (`INVALID_REQUEST`) when possible.
 
