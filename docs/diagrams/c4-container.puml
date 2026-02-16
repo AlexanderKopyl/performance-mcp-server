@@ -1,0 +1,24 @@
+@startuml C4_Container
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title MCP Performance Analyzer - Container Diagram
+
+Person(engineer, "Engineer")
+System_Boundary(system, "MCP Performance Analyzer") {
+  Container(stdio, "STDIO MCP Runtime", "Symfony Console Command", "Long-running loop, request validation/deserialization, dispatch")
+  Container(app, "Application Layer", "PHP", "Tool routing and use-case orchestration")
+  Container(storage, "Filesystem Storage", "Local FS under var/mcp", "Snapshots, metadata, reports")
+  Container(logs, "Structured Logs", "Monolog JSON", "Correlation and execution observability")
+}
+
+System_Ext(client, "MCP Client")
+System_Ext(artifacts, "Offline Artifacts")
+
+Rel(client, stdio, "Sends MCP messages", "STDIO")
+Rel(stdio, app, "Dispatches tool calls")
+Rel(app, storage, "Uses scaffolded paths")
+Rel(stdio, logs, "Emits structured logs")
+Rel(storage, artifacts, "Ingests from")
+Rel(engineer, client, "Operates")
+
+@enduml

@@ -7,6 +7,20 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    app.artifacts_dir: '%kernel.project_dir%/var/artifacts'
+    app.storage_base_dir: '%kernel.project_dir%/var/mcp'
+    app.slow_log_max_examples_per_fingerprint: 3
+    app.retention.keep_last_n: 50
+    app.retention.ttl_days: ~
+    app.collector.default_sample_count: 3
+    app.collector.default_concurrency: 1
+    app.collector.default_timeout_ms: 3000
+    app.collector.default_warmup_count: 1
+    app.collector.copy_max_bytes: 10485760
+    app.collector.max_files_per_spx_dir: 500
+    app.collector.retention.keep_last_n: 50
+    app.collector.retention.ttl_days: ~
+    app.spx.text_gz_max_decompressed_bytes: 16777216
 
 services:
     # default configuration for services in *this* file
@@ -14,10 +28,47 @@ services:
         autowire: true      # Automatically injects dependencies in your services.
         autoconfigure: true # Automatically registers your services as commands, event subscribers, etc.
 
-    # makes classes in src/ available to be used as services
-    # this creates a service per class whose id is the fully-qualified class name
-    App\:
-        resource: '../src/'
+    _instanceof:
+        App\Application\Mcp\Tool\ToolHandlerInterface:
+            tags: ['app.mcp.tool_handler']
+        App\Application\Artifacts\Contract\ArtifactFormatHandlerInterface:
+            tags: ['app.artifacts.format_handler']
+
+    App\Application\:
+        resource: '../src/Application/'
+
+    App\Infrastructure\:
+        resource: '../src/Infrastructure/'
+
+    App\Shared\:
+        resource: '../src/Shared/'
+
+    App\Application\Artifacts\Contract\SnapshotStoreInterface: '@App\Infrastructure\Storage\FilesystemSnapshotStore'
+    App\Application\Artifacts\Contract\RetentionManagerInterface: '@App\Infrastructure\Storage\RetentionManager'
+    App\Application\Reporting\Contract\ReportWriterInterface: '@App\Infrastructure\Storage\FilesystemReportWriter'
+    App\Domain\Analysis\SnapshotAnalysisEngine: ~
+    App\Application\Collector\Service\CollectorInputNormalizer:
+        arguments:
+            $defaultSampleCount: '%app.collector.default_sample_count%'
+            $defaultConcurrency: '%app.collector.default_concurrency%'
+            $defaultTimeoutMs: '%app.collector.default_timeout_ms%'
+            $defaultWarmupCount: '%app.collector.default_warmup_count%'
+    App\Application\Collector\Service\BundleWriter:
+        arguments:
+            $copyMaxBytes: '%app.collector.copy_max_bytes%'
+    App\Application\Collector\Service\BundleRetentionManager:
+        arguments:
+            $defaultKeepLastN: '%app.collector.retention.keep_last_n%'
+            $defaultTtlDays: '%app.collector.retention.ttl_days%'
+    App\Application\Collector\Service\CollectorRunService:
+        arguments:
+            $maxFilesPerSpxDir: '%app.collector.max_files_per_spx_dir%'
+    App\Infrastructure\Artifacts\Format\Spx\SpxTextGzParser:
+        arguments:
+            $maxDecompressedBytes: '%app.spx.text_gz_max_decompressed_bytes%'
+    App\Infrastructure\Artifacts\Format\SpxArtifactFormatHandler:
+        arguments:
+            $maxTextGzBytes: '%app.spx.text_gz_max_decompressed_bytes%'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

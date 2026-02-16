@@ -1,0 +1,15 @@
+@startuml C4_Context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title MCP Performance Analyzer - System Context
+
+Person(engineer, "Engineer", "Runs MCP tooling from local environment")
+System(mcp, "MCP Performance Analyzer", "Read-only analytics over offline artifacts")
+System_Ext(artifactStore, "Artifact Filesystem", "SPX profiles, slow-query logs, timing artifacts")
+System_Ext(client, "MCP Client", "Invokes tools over STDIO JSON messages")
+
+Rel(engineer, client, "Uses")
+Rel(client, mcp, "Invokes MCP tools", "STDIO")
+Rel(mcp, artifactStore, "Reads/writes snapshots and reports", "Filesystem")
+
+@enduml

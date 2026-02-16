@@ -1,0 +1,35 @@
+@startuml C4_Component
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+title MCP Performance Analyzer - MCP Server Components
+
+Container_Boundary(stdio, "STDIO MCP Runtime") {
+  Component(cmd, "McpServerRunCommand", "Infrastructure", "Reads STDIN, writes STDOUT, coordinates request lifecycle")
+  Component(deser, "McpRequestDeserializer", "Infrastructure", "Validates and deserializes MCP request payloads")
+  Component(corr, "CorrelationIdFactory", "Infrastructure", "Deterministic correlation_id derivation")
+  Component(router, "ToolRouter", "Application", "Routes method name to handler")
+  Component(handlers, "Tool Handlers", "Application", "artifacts.validate/ingest, collect.run, analysis.run, report.export")
+  Component(engine, "SnapshotAnalysisEngine", "Domain", "Computes endpoint/span/query bottlenecks and P0/P1/P2 ranking")
+  Component(collector, "CollectorRunService", "Application", "collect.run orchestration for SPX/slow-log bundle + HTTP timing probe")
+  Component(bundleWriter, "BundleWriter", "Application", "Writes collector bundle manifest/timings/raw files under var/mcp/bundles")
+  Component(reporter, "ReportExportService", "Application", "Builds Markdown/JSON report payloads")
+  Component(reportStore, "FilesystemReportWriter", "Infrastructure", "Persists report markdown/json under var/mcp/reports")
+  Component(redactor, "LogRedactor", "Infrastructure", "Removes sensitive values from structured logs")
+  Component(storage, "FilesystemStorageScaffold", "Infrastructure", "Ensures var/mcp directories and naming rules")
+}
+Container_Ext(artifactFs, "Artifact Filesystem", "Filesystem", "SPX dirs, MySQL slow log, collector bundle output")
+
+Rel(cmd, deser, "deserialize(raw JSON)")
+Rel(deser, corr, "build correlation_id")
+Rel(cmd, router, "resolve handler")
+Rel(router, handlers, "dispatches")
+Rel(handlers, engine, "invokes analysis rules")
+Rel(handlers, collector, "invokes collect.run")
+Rel(collector, bundleWriter, "persists bundle artifacts")
+Rel(handlers, reporter, "invokes report export")
+Rel(reporter, reportStore, "writes report artifacts")
+Rel(bundleWriter, artifactFs, "reads source files + writes bundle")
+Rel(cmd, redactor, "redact log context")
+Rel(cmd, storage, "ensure storage scaffold")
+
+@enduml
