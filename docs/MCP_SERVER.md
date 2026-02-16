@@ -16,6 +16,30 @@ Replace placeholders before running:
 - `SNAPSHOT_ID_FROM_INGEST` with a real `normalized_snapshot_id`
 - `https://example.local` with a reachable non-production base URL
 
+## Using with Codex CLI
+
+From repository root:
+
+```bash
+export CODEX_HOME="$PWD/.codex"
+```
+
+Project-local Codex files:
+
+- config: `.codex/config.toml`
+- prompts: `.codex/prompts/*.md`
+- usage guide: `.codex/README.md`
+
+Compatibility note:
+- This server currently handles JSON-RPC method calls over NDJSON (one request per line), as documented below.
+- MCP protocol tool discovery/call compatibility is not the baseline workflow for this repository.
+- Use the manual NDJSON prompts under `.codex/prompts/` as the supported path.
+- You can still check whether your Codex build detects the configured server:
+
+```bash
+CODEX_HOME="$PWD/.codex" codex mcp list --json
+```
+
 ### Makefile shortcuts
 
 ```bash

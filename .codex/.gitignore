@@ -1,0 +1,8 @@
+# Local Codex auth/session/runtime files (do not commit personal data).
+auth.json
+sessions/
+log/
+cache/
+tmp/
+*.tmp
+*.swp
