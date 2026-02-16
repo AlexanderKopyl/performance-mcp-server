@@ -66,6 +66,12 @@ run_mcp_once '{"jsonrpc":"2.0","id":"ing-quick-1","method":"artifacts.ingest","p
 run_mcp_once '{"jsonrpc":"2.0","id":"ana-quick-1","method":"analysis.run","params":{"correlation_id":"corr-quick-ana-001","normalized_snapshot_id":"SNAPSHOT_ID_FROM_INGEST","top_n":5}}'
 ```
 
+### `analysis.run` with threshold overrides
+
+```bash
+run_mcp_once '{"jsonrpc":"2.0","id":"ana-quick-2","method":"analysis.run","params":{"correlation_id":"corr-quick-ana-002","normalized_snapshot_id":"SNAPSHOT_ID_FROM_INGEST","top_n":5,"thresholds":{"endpoint_ttfb_ms":{"P0":1200,"P1":700,"P2":250},"endpoint_wall_ms":{"P0":1800,"P1":900,"P2":350},"query_total_time_ms":{"P0":8000,"P1":2500,"P2":900},"span_self_ms":{"P0":700,"P1":280,"P2":90},"span_total_ms":{"P0":1200,"P1":600,"P2":220}}}}'
+```
+
 ### `report.export`
 
 ```bash
@@ -195,7 +201,12 @@ Correlation/observability fields:
   - `normalized_snapshot_id` (or `snapshot_id` alias)
 - Optional params:
   - `top_n` (int, clamped to 1..20, default 5)
-  - `thresholds` (object, passed into threshold normalizer)
+  - `thresholds` (object, optional)
+    - Supported metric keys: `endpoint_ttfb_ms`, `endpoint_wall_ms`, `query_total_time_ms`, `span_self_ms`, `span_total_ms`
+    - Each metric value must be an object: `{ "P0": int, "P1": int, "P2": int }` (milliseconds)
+    - Validation rules: positive integers only, and `P0 >= P1 >= P2`
+    - If omitted: conservative defaults are used and threshold-focused `open_questions` are returned
+    - If provided: defaults are merged with provided metric overrides; threshold-focused `open_questions` are not returned
 - Result fields:
   - `normalized_snapshot_id`, `summary`, `ranking_thresholds`, `open_questions`
   - `aggregates`, `findings`, `findings_by_severity`, `correlation_id`
@@ -210,6 +221,8 @@ Correlation/observability fields:
   - `normalized_snapshot_id`, `report_id`
   - `markdown_path`, `json_path`
   - `markdown`, `report`, `correlation_id`
+  - `report.ranking_thresholds` and `report.open_questions` match `analysis.run` for the same params
+  - Markdown contains `# Thresholds Used` and `# Observations` sections even when `finding_count=0`
 
 5. `collect.run`
 - Purpose: collect SPX directory files + slow log + HTTP timing probes into a bundle.
@@ -281,7 +294,7 @@ Request:
 Response:
 
 ```json
-{"jsonrpc":"2.0","id":"ana-1","result":{"normalized_snapshot_id":"e6b2f0d0d1b0f5c4d8a0c8a1f9d72f6a4bde9c47f6d9f1c9d5fa72b0a53c11aa","summary":{"endpoint_count":12,"query_count":27,"finding_count":6,"p0_count":1,"p1_count":3,"p2_count":2,"top_n":5},"ranking_thresholds":{},"open_questions":[],"aggregates":{},"findings":[],"findings_by_severity":{"P0":[],"P1":[],"P2":[]},"correlation_id":"corr-ana-001"}}
+{"jsonrpc":"2.0","id":"ana-1","result":{"normalized_snapshot_id":"e6b2f0d0d1b0f5c4d8a0c8a1f9d72f6a4bde9c47f6d9f1c9d5fa72b0a53c11aa","summary":{"endpoint_count":12,"query_count":27,"finding_count":6,"p0_count":1,"p1_count":3,"p2_count":2,"top_n":5},"ranking_thresholds":{"endpoint_ttfb_ms":{"P0":1500,"P1":800,"P2":300,"source":"default_conservative"},"endpoint_wall_ms":{"P0":2000,"P1":1000,"P2":400,"source":"default_conservative"},"query_total_time_ms":{"P0":10000,"P1":3000,"P2":1000,"source":"default_conservative"},"span_self_ms":{"P0":800,"P1":300,"P2":100,"source":"default_conservative"},"span_total_ms":{"P0":1500,"P1":700,"P2":250,"source":"default_conservative"}},"open_questions":["OPEN_QUESTION: provide params.thresholds.endpoint_ttfb_ms as {\"P0\":int,\"P1\":int,\"P2\":int} to replace conservative defaults.","OPEN_QUESTION: provide params.thresholds.endpoint_wall_ms as {\"P0\":int,\"P1\":int,\"P2\":int} to replace conservative defaults.","OPEN_QUESTION: provide params.thresholds.query_total_time_ms as {\"P0\":int,\"P1\":int,\"P2\":int} to replace conservative defaults.","OPEN_QUESTION: provide params.thresholds.span_self_ms as {\"P0\":int,\"P1\":int,\"P2\":int} to replace conservative defaults.","OPEN_QUESTION: provide params.thresholds.span_total_ms as {\"P0\":int,\"P1\":int,\"P2\":int} to replace conservative defaults."],"aggregates":{},"findings":[],"findings_by_severity":{"P0":[],"P1":[],"P2":[]},"correlation_id":"corr-ana-001"}}
 ```
 
 ### 4) `report.export`

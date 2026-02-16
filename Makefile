@@ -12,6 +12,7 @@ SNAPSHOT_ID_FILE ?= /tmp/mcp.snapshot_id
 
 CORRELATION_ID ?= corr-$(shell date +%Y%m%d_%H%M%S)
 TOP_N ?= 5
+THRESHOLDS_JSON ?=
 
 # collect.run inputs
 SPX_DIRS ?= /tmp/spx
@@ -66,6 +67,8 @@ help:
 	@echo "  make ingest BUNDLE_DIR=var/mcp/bundles/bundle_YYYYMMDD_HHMMSS_xxx"
 	@echo "  make analyze"
 	@echo "  make report"
+	@echo "  make analyze THRESHOLDS_JSON='{\"endpoint_ttfb_ms\":{\"P0\":5000,\"P1\":4000,\"P2\":3000}}'"
+	@echo "  make report THRESHOLDS_JSON='{\"endpoint_ttfb_ms\":{\"P0\":5000,\"P1\":4000,\"P2\":3000}}'"
 
 server:
 	@set -euo pipefail; \
@@ -188,7 +191,12 @@ analyze:
 		echo "SNAPSHOT_ID is required (env var or $(SNAPSHOT_ID_FILE))." >&2; \
 		exit 2; \
 	fi; \
-	payload="{\"jsonrpc\":\"2.0\",\"id\":\"ana-1\",\"method\":\"analysis.run\",\"params\":{\"correlation_id\":\"$(CORRELATION_ID)\",\"normalized_snapshot_id\":\"$$snapshot_id\",\"top_n\":$(TOP_N)}}"; \
+	thresholds_json='$(THRESHOLDS_JSON)'; \
+	thresholds_fragment=""; \
+	if [[ -n "$$thresholds_json" ]]; then \
+		thresholds_fragment=",\"thresholds\":$$thresholds_json"; \
+	fi; \
+	payload="{\"jsonrpc\":\"2.0\",\"id\":\"ana-1\",\"method\":\"analysis.run\",\"params\":{\"correlation_id\":\"$(CORRELATION_ID)\",\"normalized_snapshot_id\":\"$$snapshot_id\",\"top_n\":$(TOP_N)$$thresholds_fragment}}"; \
 	printf '%s\n' "$$payload" | $(SERVER_PREFIX) $(MCP_CMD) > "$(ANALYSIS_OUT)" 2> "$(STDERR_LOG)"; \
 	echo "analysis response: $(ANALYSIS_OUT)"
 
@@ -202,7 +210,12 @@ report:
 		echo "SNAPSHOT_ID is required (env var or $(SNAPSHOT_ID_FILE))." >&2; \
 		exit 2; \
 	fi; \
-	payload="{\"jsonrpc\":\"2.0\",\"id\":\"rep-1\",\"method\":\"report.export\",\"params\":{\"correlation_id\":\"$(CORRELATION_ID)\",\"normalized_snapshot_id\":\"$$snapshot_id\",\"top_n\":$(TOP_N)}}"; \
+	thresholds_json='$(THRESHOLDS_JSON)'; \
+	thresholds_fragment=""; \
+	if [[ -n "$$thresholds_json" ]]; then \
+		thresholds_fragment=",\"thresholds\":$$thresholds_json"; \
+	fi; \
+	payload="{\"jsonrpc\":\"2.0\",\"id\":\"rep-1\",\"method\":\"report.export\",\"params\":{\"correlation_id\":\"$(CORRELATION_ID)\",\"normalized_snapshot_id\":\"$$snapshot_id\",\"top_n\":$(TOP_N)$$thresholds_fragment}}"; \
 	printf '%s\n' "$$payload" | $(SERVER_PREFIX) $(MCP_CMD) > "$(REPORT_OUT)" 2> "$(STDERR_LOG)"; \
 	php -r '$$d=json_decode(file_get_contents("$(REPORT_OUT)"),true); $$m=$$d["result"]["markdown_path"]??""; $$j=$$d["result"]["json_path"]??""; if(is_string($$m) && $$m!==""){echo "markdown_path=$$m\n";} if(is_string($$j) && $$j!==""){echo "json_path=$$j\n";}'; \
 	echo "report response: $(REPORT_OUT)"

@@ -10,6 +10,7 @@ use App\Shared\Error\ErrorCode;
 use App\Shared\Error\ErrorEnvelope;
 use App\Shared\Mcp\McpRequest;
 use App\Shared\Mcp\McpResponse;
+use InvalidArgumentException;
 
 final readonly class AnalysisRunToolHandler implements ToolHandlerInterface
 {
@@ -37,7 +38,20 @@ final readonly class AnalysisRunToolHandler implements ToolHandlerInterface
             );
         }
 
-        $result = $this->analysisRunService->run($snapshotId, $request->params);
+        try {
+            $result = $this->analysisRunService->run($snapshotId, $request->params);
+        } catch (InvalidArgumentException $exception) {
+            return new McpResponse(
+                id: $request->id,
+                result: null,
+                error: new ErrorEnvelope(
+                    code: ErrorCode::INVALID_REQUEST,
+                    message: $exception->getMessage(),
+                    correlationId: $request->correlationId,
+                ),
+            );
+        }
+
         if ($result === null) {
             return new McpResponse(
                 id: $request->id,

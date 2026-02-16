@@ -9,14 +9,16 @@ final readonly class ReportPayload
     /**
      * @param array<string, scalar|null> $executiveSummary
      * @param array{P0:list<array<string, mixed>>,P1:list<array<string, mixed>>,P2:list<array<string, mixed>>} $findingsBySeverity
+     * @param array{top_endpoints:list<array<string, mixed>>,top_queries:list<array<string, mixed>>,top_spans:list<array<string, mixed>>} $observations
      * @param list<array<string, mixed>> $evidenceAppendix
      * @param list<string> $openQuestions
-     * @param array<string, array{p0:float,p1:float,p2:float,source:string}> $rankingThresholds
+     * @param array<string, array{P0:float,P1:float,P2:float,source:string}> $rankingThresholds
      */
     public function __construct(
         public SnapshotId $snapshotId,
         public array $executiveSummary = [],
         public array $findingsBySeverity = ['P0' => [], 'P1' => [], 'P2' => []],
+        public array $observations = ['top_endpoints' => [], 'top_queries' => [], 'top_spans' => []],
         public array $evidenceAppendix = [],
         public array $openQuestions = [],
         public array $rankingThresholds = [],
@@ -35,6 +37,11 @@ final readonly class ReportPayload
                 'P0' => $this->findingsBySeverity['P0'] ?? [],
                 'P1' => $this->findingsBySeverity['P1'] ?? [],
                 'P2' => $this->findingsBySeverity['P2'] ?? [],
+            ],
+            'observations' => [
+                'top_endpoints' => $this->observations['top_endpoints'] ?? [],
+                'top_queries' => $this->observations['top_queries'] ?? [],
+                'top_spans' => $this->observations['top_spans'] ?? [],
             ],
             'evidence_appendix' => $this->evidenceAppendix,
             'open_questions' => $this->openQuestions,

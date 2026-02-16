@@ -10,6 +10,7 @@ use App\Shared\Error\ErrorCode;
 use App\Shared\Error\ErrorEnvelope;
 use App\Shared\Mcp\McpRequest;
 use App\Shared\Mcp\McpResponse;
+use InvalidArgumentException;
 
 final readonly class ReportExportToolHandler implements ToolHandlerInterface
 {
@@ -37,7 +38,20 @@ final readonly class ReportExportToolHandler implements ToolHandlerInterface
             );
         }
 
-        $result = $this->reportExportService->export($snapshotId, $request->params);
+        try {
+            $result = $this->reportExportService->export($snapshotId, $request->params);
+        } catch (InvalidArgumentException $exception) {
+            return new McpResponse(
+                id: $request->id,
+                result: null,
+                error: new ErrorEnvelope(
+                    code: ErrorCode::INVALID_REQUEST,
+                    message: $exception->getMessage(),
+                    correlationId: $request->correlationId,
+                ),
+            );
+        }
+
         if ($result === null) {
             return new McpResponse(
                 id: $request->id,

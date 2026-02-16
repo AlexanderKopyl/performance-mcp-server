@@ -9,6 +9,7 @@ use App\Domain\Analysis\AnalysisThresholds;
 use App\Domain\Analysis\SnapshotAnalysisEngine;
 use App\Domain\Model\Finding;
 use App\Domain\Model\SnapshotId;
+use InvalidArgumentException;
 
 final readonly class AnalysisRunService
 {
@@ -30,7 +31,8 @@ final readonly class AnalysisRunService
         }
 
         $topN = $this->normalizeTopN($params['top_n'] ?? null);
-        $thresholds = AnalysisThresholds::fromInput(is_array($params['thresholds'] ?? null) ? $params['thresholds'] : null);
+        $thresholdInput = $this->normalizeThresholdInput($params);
+        $thresholds = AnalysisThresholds::fromInput($thresholdInput);
         $analyzed = $this->analysisEngine->analyze($snapshot, $thresholds, $topN);
 
         /** @var list<Finding> $findings */
@@ -83,5 +85,22 @@ final readonly class AnalysisRunService
         }
 
         return $result;
+    }
+
+    /**
+     * @param array<string, mixed> $params
+     * @return array<string, mixed>|null
+     */
+    private function normalizeThresholdInput(array $params): ?array
+    {
+        if (!array_key_exists('thresholds', $params)) {
+            return null;
+        }
+
+        if (!is_array($params['thresholds'])) {
+            throw new InvalidArgumentException('params.thresholds must be an object when provided.');
+        }
+
+        return $params['thresholds'];
     }
 }
